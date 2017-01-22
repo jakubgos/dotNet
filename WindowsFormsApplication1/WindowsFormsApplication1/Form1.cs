@@ -51,8 +51,9 @@ namespace WindowsFormsApplication1
             SqlDataAdapter adapter = new SqlDataAdapter(command);
 
             DataSet ds = new DataSet();
-
             adapter.Fill(ds);
+
+            ds.Tables[0].DefaultView.RowFilter = string.Format("nazwa LIKE '%{0}%'", FiltrKlientName.Text);
 
             dataGridView1.DataSource = ds.Tables[0];
 
@@ -70,6 +71,7 @@ namespace WindowsFormsApplication1
             ds = new DataSet();
 
             adapter.Fill(ds);
+            ds.Tables[0].DefaultView.RowFilter = string.Format("producent LIKE '%{0}%'", FiltrProducent.Text);
 
             dataGridViewProduct.DataSource = ds.Tables[0];
 
@@ -108,19 +110,24 @@ namespace WindowsFormsApplication1
         
         }
 
-        private void executeCommand(SqlCommand command)
+        private int executeCommand(SqlCommand command)
         {
-         //   try
+          try
             {
                 command.Connection = connection;
                 connection.Open();
                 command.ExecuteNonQuery();
                 connection.Close();
+           }
+            catch (Exception e) {
+                connection.Close();
+                MessageBox.Show("You can't do like this...", "NO!!",
+               MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+              return 1;
             }
-        //    catch (Exception e) {
-            //    MessageBox.Show("You can't do like this...", "NO!!",
-           //     MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-         //   }
+
+            return 0;
+
         }
 
         private void button2_Click(object sender, EventArgs e) //add product
@@ -132,7 +139,7 @@ namespace WindowsFormsApplication1
 
             command.Parameters.AddWithValue("@nazwa", TBaddNameProduct.Text);
             command.Parameters.AddWithValue("@ilosc", TBaddProductNoOf.Value);
-            command.Parameters.AddWithValue("@producent", TBaddNameProduct.Text);
+            command.Parameters.AddWithValue("@producent", TBaddProducentProduct.Text);
             command.Parameters.AddWithValue("@cena", TBaddCena.Value);
 
             executeCommand(command);
@@ -183,7 +190,7 @@ namespace WindowsFormsApplication1
                 foreach (DataGridViewRow item in this.dataGridViewZamowienia.SelectedRows)
                 {
                     if (!item.IsNewRow)
-                        deleteFromDb((int)dataGridViewZamowienia.Rows[item.Index].Cells["Id"].Value, "zamowienia");
+                        if (deleteFromDb((int)dataGridViewZamowienia.Rows[item.Index].Cells["Id"].Value, "zamowienia") != 0 ) break; 
                 }
             }
             showAndRefreshDataView();
@@ -196,14 +203,14 @@ namespace WindowsFormsApplication1
                 foreach (DataGridViewRow item in this.dataGridView1.SelectedRows)
                 {
                     if (!item.IsNewRow)
-                        deleteFromDb((int) dataGridView1.Rows[item.Index].Cells["Id"].Value, "klienci");
+                        if (deleteFromDb((int)dataGridView1.Rows[item.Index].Cells["Id"].Value, "klienci") != 0) break;
                 }
             }
             showAndRefreshDataView();
         }
 
  
-        private void deleteFromDb(int value, string tabela)
+        private int deleteFromDb(int value, string tabela)
         {
             SqlCommand command = new SqlCommand();
 
@@ -212,7 +219,7 @@ namespace WindowsFormsApplication1
 
             command.Parameters.AddWithValue("@id", value);
 
-            executeCommand(command);
+            return executeCommand(command);
         }
 
         private void button6_Click(object sender, EventArgs e)
@@ -222,9 +229,33 @@ namespace WindowsFormsApplication1
                 foreach (DataGridViewRow item in this.dataGridViewProduct.SelectedRows)
                 {
                     if (!item.IsNewRow)
-                        deleteFromDb((int)dataGridViewProduct.Rows[item.Index].Cells["Id"].Value, "produkty");
+                        if (deleteFromDb((int)dataGridViewProduct.Rows[item.Index].Cells["Id"].Value, "produkty") != 0) break;
                 }
             }
+            showAndRefreshDataView();
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            SqlCommand command = new SqlCommand();
+            command.CommandType = CommandType.Text;
+            command.CommandText = "DELETE FROM zamowienia";
+            executeCommand(command);
+            command.CommandText = "DELETE FROM klienci";
+            executeCommand(command);
+            command.CommandText = "DELETE FROM produkty";
+            executeCommand(command);
+
+            showAndRefreshDataView();
+        }
+
+        private void FiltrKlientName_TextChanged(object sender, EventArgs e)
+        {
+            showAndRefreshDataView();
+        }
+
+        private void FiltrProducent_TextChanged(object sender, EventArgs e)
+        {
             showAndRefreshDataView();
         }
     }
